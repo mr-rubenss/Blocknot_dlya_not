@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Нотный блокнот</title>
+  <meta name="description" content="Блокнот для нот: храните партитуры и делайте пометки стилусом">
+  <meta name="theme-color" content="#2b2a33">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Ноты">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body data-view="library">
+  <!-- ================= Библиотека ================= -->
+  <section id="library" class="view">
+    <header class="lib-header">
+      <div class="brand"><span class="brand-icon">𝄞</span> Нотный блокнот</div>
+      <div class="lib-tools">
+        <input id="lib-search" type="search" placeholder="Поиск по названию или автору" autocomplete="off">
+        <select id="lib-sort" aria-label="Сортировка">
+          <option value="recent">Недавно открытые</option>
+          <option value="updated">Недавно изменённые</option>
+          <option value="title">По названию</option>
+          <option value="composer">По автору</option>
+        </select>
+      </div>
+      <div class="lib-actions">
+        <button id="btn-new" class="btn primary">＋ Нотная тетрадь</button>
+        <button id="btn-import" class="btn">Импорт PDF / фото</button>
+        <button id="btn-backup" class="btn subtle" title="Сохранить все ноты и пометки в один файл">Резервная копия</button>
+        <button id="btn-restore" class="btn subtle" title="Загрузить ноты из файла резервной копии">Восстановить</button>
+      </div>
+    </header>
+    <div id="lib-empty" class="empty" hidden>
+      <div class="empty-icon">𝄞</div>
+      <h2>Здесь будут ваши ноты</h2>
+      <p>Импортируйте ноты из PDF или фотографий — или создайте чистую нотную тетрадь и пишите стилусом.</p>
+      <p class="hint">Совет: добавьте приложение на главный экран (в Safari — «Поделиться → На экран „Домой“», в Chrome — «Установить приложение»), тогда оно будет работать без интернета.</p>
+    </div>
+    <div id="lib-nothing" class="empty small" hidden><p>Ничего не найдено</p></div>
+    <div id="lib-grid" class="grid"></div>
+  </section>
+
+  <!-- ================= Редактор ================= -->
+  <section id="editor" class="view" hidden>
+    <header class="toolbar">
+      <div class="tb-group tb-left">
+        <button id="btn-back" class="icon-btn" title="К библиотеке" aria-label="К библиотеке">
+          <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <button id="btn-pages" class="icon-btn" title="Страницы" aria-label="Страницы">
+          <svg viewBox="0 0 24 24"><rect x="4" y="3" width="7" height="8" rx="1"/><rect x="13" y="3" width="7" height="8" rx="1"/><rect x="4" y="13" width="7" height="8" rx="1"/><rect x="13" y="13" width="7" height="8" rx="1"/></svg>
+        </button>
+        <button id="editor-title" class="title-btn" title="Изменить название"></button>
+      </div>
+      <div class="tb-group tb-tools">
+        <button class="icon-btn tool" data-tool="pen" title="Ручка (повторное нажатие — цвет и толщина)" aria-label="Ручка">
+          <svg viewBox="0 0 24 24"><path d="M4 20l1.5-5L16 4.5a2.1 2.1 0 013 3L8.5 18 4 20z"/><path d="M14 6.5l3 3"/></svg>
+        </button>
+        <button class="icon-btn tool" data-tool="hl" title="Маркер (повторное нажатие — цвет и толщина)" aria-label="Маркер">
+          <svg viewBox="0 0 24 24"><path d="M9 14l-3 3v3h3l3-3"/><path d="M9 14l7-9 4 4-9 7z"/><path d="M4 21h16" class="hl-line"/></svg>
+        </button>
+        <button class="icon-btn tool" data-tool="eraser" title="Ластик" aria-label="Ластик">
+          <svg viewBox="0 0 24 24"><path d="M8 20h12"/><path d="M4.5 15.5l9-9a2 2 0 012.8 0l3.2 3.2a2 2 0 010 2.8L13 19H8l-3.5-3.5z"/><path d="M9.5 10.5l5 5"/></svg>
+        </button>
+        <button class="icon-btn tool" data-tool="text" title="Текст (касание пометки — изменить, перетащить — сдвинуть)" aria-label="Текст">
+          <svg viewBox="0 0 24 24"><path d="M5 6V4h14v2"/><path d="M12 4v16"/><path d="M9 20h6"/></svg>
+        </button>
+        <button class="icon-btn tool" data-tool="stamp" title="Обозначения: динамика, темп, знаки (повторное нажатие — выбор)" aria-label="Обозначения">
+          <span class="stamp-preview">mf</span>
+        </button>
+        <button class="icon-btn tool" data-tool="hand" title="Рука — только листать и масштабировать" aria-label="Рука">
+          <svg viewBox="0 0 24 24"><path d="M8 13V5.5a1.5 1.5 0 013 0V12"/><path d="M11 11.5V4a1.5 1.5 0 013 0v8"/><path d="M14 11.5V5.5a1.5 1.5 0 013 0V14"/><path d="M8 12.5a1.5 1.5 0 00-3 0V15a6 6 0 006 6h1a6 6 0 006-6V9.5a1.5 1.5 0 00-3 0"/></svg>
+        </button>
+        <span id="tool-color" class="color-dot" aria-hidden="true"></span>
+        <span class="sep"></span>
+        <button id="btn-undo" class="icon-btn" title="Отменить" aria-label="Отменить">
+          <svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 010 11H11"/></svg>
+        </button>
+        <button id="btn-redo" class="icon-btn" title="Повторить" aria-label="Повторить">
+          <svg viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 000 11H13"/></svg>
+        </button>
+        <span class="sep"></span>
+        <button id="stylus-toggle" class="icon-btn" aria-label="Только стилус">
+          <svg viewBox="0 0 24 24"><path d="M5 19l2-6 9-9 3 3-9 9-5 3z"/><path d="M3 21h4" /><circle cx="18" cy="18" r="3" class="dot-fill"/></svg>
+        </button>
+      </div>
+      <div class="tb-group tb-right">
+        <button id="btn-zoom-out" class="icon-btn" title="Уменьшить" aria-label="Уменьшить">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4M8 11h6"/></svg>
+        </button>
+        <button id="btn-fit" class="icon-btn" title="По ширине / страница целиком" aria-label="Вписать">
+          <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+        </button>
+        <button id="btn-zoom-in" class="icon-btn" title="Увеличить" aria-label="Увеличить">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4M8 11h6M11 8v6"/></svg>
+        </button>
+        <button id="btn-perf" class="icon-btn" title="Режим выступления (полный экран)" aria-label="Режим выступления">
+          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+        <button id="btn-more" class="icon-btn" title="Ещё" aria-label="Ещё">
+          <svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="editor-body">
+      <aside id="panel">
+        <div class="panel-head">
+          <span>Страницы</span>
+          <div>
+            <button id="panel-add" class="icon-btn" title="Добавить страницу" aria-label="Добавить страницу">
+              <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
+            <button id="panel-close" class="icon-btn" title="Закрыть" aria-label="Закрыть">
+              <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+          </div>
+        </div>
+        <div id="thumb-list"></div>
+      </aside>
+
+      <main id="stage" data-tool="pen">
+        <div id="page-wrap">
+          <div id="page">
+            <canvas id="bg-canvas"></canvas>
+            <canvas id="ink-canvas"></canvas>
+            <canvas id="live-canvas"></canvas>
+          </div>
+        </div>
+      </main>
+
+      <nav class="pager">
+        <button id="btn-prev" class="pager-btn" aria-label="Предыдущая страница">
+          <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <button id="page-indicator" class="pager-num">1 / 1</button>
+        <button id="btn-next" class="pager-btn" aria-label="Следующая страница">
+          <svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
+        </button>
+      </nav>
+      <div class="perf-controls">
+        <span id="perf-indicator"></span>
+        <button id="btn-perf-exit" class="btn">Выйти</button>
+      </div>
+    </div>
+  </section>
+
+  <div id="print-area"></div>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <div id="busy" hidden><div class="spinner"></div><div id="busy-text"></div></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
