@@ -1,8 +1,8 @@
 // Редактор: просмотр страниц и рукописные пометки стилусом.
 import * as db from './db.js';
 import { drawBackground, drawItems, drawStroke, textBounds, renderPageToCanvas } from './render.js';
-import { touchScore, staffPage, appendFilePages, printScore, editInfo, popupMenu } from './library.js';
-import { $, el, modal, confirmDialog, toast, pickFiles, busy } from './ui.js';
+import { touchScore, staffPage, appendFilePages, printScore, exportPdf, editInfo, popupMenu } from './library.js';
+import { $, el, modal, confirmDialog, toast, pickFiles, busy, isNative } from './ui.js';
 
 const PEN_COLORS = ['#1b1b1b', '#1f4fd1', '#d12a2a', '#1d8a3a', '#e07b00', '#7b2fbf'];
 const HL_COLORS = ['#ffe600', '#7cff4f', '#ff6ec7', '#4fd8ff', '#ffa94f'];
@@ -958,7 +958,8 @@ function moreMenu(anchor) {
     { label: 'Переместить страницу вперёд', action: () => movePage(1) },
     { label: 'Стереть пометки на странице', action: clearPage },
     { label: settings.stylusOnly ? 'Рисовать и пальцем' : 'Рисовать только стилусом', action: () => setStylusOnly(!settings.stylusOnly, true) },
-    { label: 'Печать / сохранить в PDF', action: async () => { await flushSave(); printScore(score.id); } },
+    { label: 'Экспорт в PDF', action: async () => { await flushSave(); exportPdf(score.id); } },
+    ...(isNative() ? [] : [{ label: 'Печать', action: async () => { await flushSave(); printScore(score.id); } }]),
     { label: 'Удалить страницу…', danger: true, action: deleteCurrentPage },
   ]);
 }

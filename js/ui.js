@@ -109,3 +109,43 @@ export function busy(on, text = 'Загрузка…') {
   $('#busy-text').textContent = text;
   b.hidden = !on;
 }
+
+// ---------- Файлы: сохранение и «Поделиться» ----------
+export function isNative() {
+  return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+}
+
+export function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result).split(',')[1]);
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(blob);
+  });
+}
+
+export function safeFileName(name) {
+  return (name || 'ноты').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) || 'ноты';
+}
+
+// В Android-приложении — системное окно «Поделиться» (сохранить на Диск, в Файлы, отправить),
+// на планшете в браузере — «Поделиться», если доступно, иначе обычное скачивание.
+export async function saveFile(blob, name, title) {
+  if (isNative()) {
+    const { Filesystem, Share } = window.Capacitor.Plugins;
+    const data = await blobToBase64(blob);
+    const res = await Filesystem.writeFile({ path: name, data, directory: 'CACHE' });
+    try {
+      await Share.share({ title, dialogTitle: title, files: [res.uri] });
+    } catch (e) {
+      if (!/cancel/i.test(e && e.message)) throw e;
+    }
+    return;
+  }
+  const file = new File([blob], name, { type: blob.type });
+  if (navigator.canShare && /iPad|iPhone|Android|Macintosh/i.test(navigator.userAgent) && 'ontouchend' in document
+      && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], title }); return; } catch (e) { if (e.name === 'AbortError') return; }
+  }
+  downloadBlob(blob, name);
+}

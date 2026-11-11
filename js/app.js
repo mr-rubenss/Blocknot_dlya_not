@@ -2,7 +2,7 @@
 import { initLibrary, renderLibrary } from './library.js';
 import { initEditor, openEditor, leaveEditor } from './editor.js';
 import { requestPersistence } from './db.js';
-import { $, toast } from './ui.js';
+import { $, toast, isNative } from './ui.js';
 
 function showView(name) {
   $('#library').hidden = name !== 'library';
@@ -29,7 +29,7 @@ window.addEventListener('hashchange', route);
 route();
 requestPersistence();
 
-if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+if ('serviceWorker' in navigator && location.protocol !== 'file:' && !isNative()) {
   navigator.serviceWorker.register('./sw.js').catch((e) => console.warn('SW:', e));
 }
 

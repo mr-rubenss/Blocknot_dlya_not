@@ -1,5 +1,5 @@
 // Сервис-воркер: приложение работает без интернета.
-const CACHE = 'notebook-notes-v1';
+const CACHE = 'notebook-notes-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -17,6 +17,7 @@ const ASSETS = [
   './icons/icon-512.png',
   './vendor/pdfjs/pdf.min.mjs',
   './vendor/pdfjs/pdf.worker.min.mjs',
+  './vendor/pdf-lib/pdf-lib.esm.min.js',
 ];
 
 self.addEventListener('install', (event) => {

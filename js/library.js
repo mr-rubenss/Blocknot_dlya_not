@@ -1,7 +1,7 @@
 // Библиотека нот: список, создание, импорт, резервное копирование.
 import * as db from './db.js';
 import { openPdf, loadImageFromBlob, renderPageToCanvas, forgetFile } from './render.js';
-import { $, el, modal, confirmDialog, pickFiles, toast, busy, downloadBlob } from './ui.js';
+import { $, el, modal, confirmDialog, pickFiles, toast, busy, saveFile, blobToBase64, safeFileName, isNative } from './ui.js';
 
 const A4 = 297 / 210;
 let onOpenScore = () => {};
@@ -275,7 +275,8 @@ function scoreMenu(s, anchor) {
     { label: s.fav ? 'Убрать из избранного' : 'В избранное', action: async () => { await touchScore(s.id, { fav: !s.fav }); renderLibrary(); } },
     { label: 'Переименовать…', action: () => editInfo(s) },
     { label: 'Создать копию', action: () => duplicateScore(s) },
-    { label: 'Печать / сохранить в PDF', action: () => printScore(s.id) },
+    { label: 'Экспорт в PDF', action: () => exportPdf(s.id) },
+    ...(isNative() ? [] : [{ label: 'Печать', action: () => printScore(s.id) }]),
     { label: 'Удалить…', danger: true, action: () => removeScore(s) },
   ]);
 }
@@ -328,7 +329,37 @@ async function removeScore(s) {
   renderLibrary();
 }
 
-// ---------- Печать (через системный диалог можно сохранить в PDF) ----------
+// ---------- Экспорт в PDF (страницы вместе с пометками) ----------
+export async function exportPdf(scoreId) {
+  try {
+    busy(true, 'Создание PDF…');
+    const score = await db.get('scores', scoreId);
+    const pages = await db.getPages(scoreId);
+    const { PDFDocument } = await import('../vendor/pdf-lib/pdf-lib.esm.min.js');
+    const pdf = await PDFDocument.create();
+    pdf.setTitle(score.title);
+    if (score.composer) pdf.setAuthor(score.composer);
+    for (let i = 0; i < pages.length; i++) {
+      busy(true, `Создание PDF… ${i + 1} / ${pages.length}`);
+      const p = pages[i];
+      const canvas = await renderPageToCanvas(p, 1654); // ~200 dpi для A4
+      const jpg = await new Promise((r) => canvas.toBlob(r, 'image/jpeg', 0.9));
+      const img = await pdf.embedJpg(new Uint8Array(await jpg.arrayBuffer()));
+      const w = 595.28; // ширина A4 в пунктах
+      const h = w * p.aspect;
+      pdf.addPage([w, h]).drawImage(img, { x: 0, y: 0, width: w, height: h });
+    }
+    const blob = new Blob([await pdf.save()], { type: 'application/pdf' });
+    busy(false);
+    await saveFile(blob, safeFileName(score.title) + '.pdf', score.title);
+  } catch (e) {
+    busy(false);
+    console.error(e);
+    toast('Не удалось создать PDF: ' + (e.message || e));
+  }
+}
+
+// ---------- Печать (через системный диалог) ----------
 export async function printScore(scoreId) {
   try {
     busy(true, 'Подготовка к печати…');
@@ -355,15 +386,6 @@ export async function printScore(scoreId) {
 }
 
 // ---------- Резервная копия ----------
-function blobToBase64(blob) {
-  return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(String(r.result).split(',')[1]);
-    r.onerror = () => reject(r.error);
-    r.readAsDataURL(blob);
-  });
-}
-
 function base64ToBlob(b64, type) {
   const bin = atob(b64);
   const bytes = new Uint8Array(bin.length);
@@ -387,13 +409,8 @@ async function exportBackup() {
     }
     const blob = new Blob([JSON.stringify(out)], { type: 'application/json' });
     const date = new Date().toISOString().slice(0, 10);
-    const name = `notnyi-bloknot-${date}.json`;
     busy(false);
-    const file = new File([blob], name, { type: 'application/json' });
-    if (navigator.canShare && navigator.canShare({ files: [file] }) && /iPad|iPhone|Android/i.test(navigator.userAgent)) {
-      try { await navigator.share({ files: [file], title: 'Резервная копия нот' }); return; } catch (e) { if (e.name === 'AbortError') return; }
-    }
-    downloadBlob(blob, name);
+    await saveFile(blob, `notnyi-bloknot-${date}.json`, 'Резервная копия нот');
   } catch (e) {
     busy(false);
     console.error(e);

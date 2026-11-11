@@ -1,0 +1,8 @@
+{
+  "appId": "io.github.mrrubenss.notnyibloknot",
+  "appName": "Нотный блокнот",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#2b2a33"
+  }
+}
